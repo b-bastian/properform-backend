@@ -1,5 +1,7 @@
 node_module
 
+.env
+
 # macOS metadata
 .DS_Store
 ._*
