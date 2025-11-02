@@ -5,6 +5,8 @@ import { requireAuth } from "./auth.js";
 import publicUserRoutes from "./routes/UserRoutes/publicUserRoutes.js";
 import protectedUserRoutes from "./routes/UserRoutes/protectedUserRoutes.js";
 import protectedSystemRoutes from "./routes/SystemRoutes/ProtectedSystemRoutes.js";
+import publicTrainerRoutes from "./routes/TrainerRoutes/publicTrainerRoutes.js";
+import privateTrainerRoutes from "./routes/TrainerRoutes/privateTrainerRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -35,12 +37,15 @@ app.use((req, res, next) => {
 // --- Öffentliche Routen ---
 app.use("/users", publicUserRoutes);
 
+app.use("/trainers", publicTrainerRoutes);
+
 // --- Auth Middleware ---
 app.use(requireAuth);
 
 // --- Geschützte Routen ---
 app.use("/users", protectedUserRoutes);
 app.use("/system", protectedSystemRoutes);
+app.use("/trainers", privateTrainerRoutes);
 
 // --- Test ---
 app.get("/", (req, res) => {
@@ -53,4 +58,3 @@ app.use((req, res) => {
 });
 
 app.listen(PORT, () => console.log(`🚀 API läuft auf Port ${PORT}`));
-

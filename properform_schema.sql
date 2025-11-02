@@ -68,15 +68,19 @@ CREATE TABLE user_has_interest (
 -- Trainers are not publicly visible, users must know them in real life
 CREATE TABLE trainers (
   tid INT AUTO_INCREMENT PRIMARY KEY,
-  uid INT UNIQUE NOT NULL,
-  specialization VARCHAR(255) COMMENT 'gym, basketball',
-  certifications TEXT,
-  bio TEXT,
-  years_experience INT,
+  firstname VARCHAR(100) NOT NULL,
+  lastname VARCHAR(100) NOT NULL,
+  birthdate DATE,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  phone_number VARCHAR(50),
+  profile_image_url VARCHAR(500),
+  invite_code VARCHAR(12) UNIQUE NOT NULL,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (uid) REFERENCES users(uid) ON DELETE CASCADE ON UPDATE CASCADE
+  INDEX idx_email (email),
+  INDEX idx_invite_code (invite_code)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 
 -- Links trainers to their assigned athletes (one-to-many)
 -- Each user can have only ONE trainer, but trainers can manage multiple athletes
