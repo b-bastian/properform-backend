@@ -22,6 +22,26 @@ router.get("/dbtest", async (req, res) => {
   }
 });
 
+router.post("/adminRegister", async (req, res) => {
+  //const { firstname, birthdate, email, password_hash } = req.body;
+
+  const { firstname, birthdate, email, password_hash } = req.body;
+  if (!firstname || !birthdate || !email || !password_hash)
+    return res.status(400).json({ error: "Pflichtfelder fehlen" });
+
+  try {
+    const hashedPassword = await bcrypt.hash(password_hash, saltRounds);
+    await db.execute(
+      "INSERT INTO users (firstname, birthdate, email, password_hash, role_id) VALUES (?, ?, ?, ?, 1)",
+      [firstname, birthdate || null, email, hashedPassword]
+    );
+    res.status(201).json({ message: `Admin ${firstname} registriert.` });
+  } catch (error) {
+    console.error("Admin-Registrierungsfehler:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Admin-Login
 router.post("/adminLogin", async (req, res) => {
   const { email, password } = req.body;

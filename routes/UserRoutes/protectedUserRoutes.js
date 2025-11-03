@@ -6,54 +6,6 @@ import { requireAuth } from "../../auth.js";
 const router = express.Router();
 const saltRounds = parseInt(process.env.SALT_ROUNDS) || 10;
 
-router.post("/adminRegister", requireAuth, async (req, res) => {
-  //const { firstname, birthdate, email, password_hash } = req.body;
-  if (req.user.role !== 1)
-    return res
-      .status(403)
-      .json({ error: "Nur Admin darf Admins registrieren" });
-
-  const { firstname, birthdate, email, password_hash } = req.body;
-  if (!firstname || !birthdate || !email || !password_hash)
-    return res.status(400).json({ error: "Pflichtfelder fehlen" });
-
-  try {
-    const hashedPassword = await bcrypt.hash(password_hash, saltRounds);
-    await db.execute(
-      "INSERT INTO users (firstname, birthdate, email, password_hash, role_id) VALUES (?, ?, ?, ?, 1)",
-      [firstname, birthdate || null, email, hashedPassword]
-    );
-    res.status(201).json({ message: `Admin ${firstname} registriert.` });
-  } catch (error) {
-    console.error("Admin-Registrierungsfehler:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Trainer-Registrierung (nur Admin darf)
-router.post("/registerTrainer", requireAuth, async (req, res) => {
-  if (req.user.role !== 1)
-    return res
-      .status(403)
-      .json({ error: "Nur Admin darf Trainer registrieren" });
-
-  const { firstname, birthdate, email, password_hash } = req.body;
-  if (!firstname || !birthdate || !email || !password_hash)
-    return res.status(400).json({ error: "Pflichtfelder fehlen" });
-
-  try {
-    const hashedPassword = await bcrypt.hash(password_hash, saltRounds);
-    await db.execute(
-      "INSERT INTO users (firstname, birthdate, email, password_hash, role_id) VALUES (?, ?, ?, ?, 3)",
-      [firstname, birthdate || null, email, hashedPassword]
-    );
-    res.status(201).json({ message: `Trainer ${firstname} registriert.` });
-  } catch (error) {
-    console.error("Trainer-Registrierungsfehler:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
 router.get("/getAll", requireAuth, async (req, res) => {
   try {
     const [rows] = await db.execute(
@@ -125,6 +77,25 @@ router.get("/getNumberOfTrainers", requireAuth, async (req, res) => {
   } catch (error) {
     console.error("Fehler beim Abrufen der Traineranzahl:", error);
     res.status(500).json({ error: "Interner Serverfehler" });
+  }
+});
+
+router.delete("/deleteUser/:uid", requireAuth, async (req, res) => {
+  const { uid } = req.params;
+
+  console.log(`Lösche Benutzer mit UID: ${uid}`);
+
+  try {
+    const [result] = await db.execute("DELETE FROM users WHERE uid = ?", [uid]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Benutzer nicht gefunden" });
+    }
+
+    res.json({ message: "Benutzer erfolgreich gelöscht" });
+  } catch (error) {
+    console.error("Fehler beim Löschen des Benutzers:", error);
+    res.status(500).json({ error: "Fehler beim Löschen des Benutzers" });
   }
 });
 

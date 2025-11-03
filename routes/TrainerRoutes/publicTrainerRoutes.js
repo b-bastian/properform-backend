@@ -76,3 +76,5 @@ router.post("/link-athlete", async (req, res) => {
     res.status(500).json({ error: "Interner Serverfehler." });
   }
 });
+
+export default router;

@@ -1,20 +1,21 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { requireAuth } from "./auth.js";
 import publicUserRoutes from "./routes/UserRoutes/publicUserRoutes.js";
 import protectedUserRoutes from "./routes/UserRoutes/protectedUserRoutes.js";
 import protectedSystemRoutes from "./routes/SystemRoutes/ProtectedSystemRoutes.js";
 import publicTrainerRoutes from "./routes/TrainerRoutes/publicTrainerRoutes.js";
 import privateTrainerRoutes from "./routes/TrainerRoutes/privateTrainerRoutes.js";
+import { requireAuth } from "./auth.js";
 
 dotenv.config();
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(express.json());
-
-// --- CORS Setup ---
+// --------------------
+// 🔧 GLOBAL CORS CONFIG
+// --------------------
 const allowedOrigins = [
   "http://localhost:5173",
   "https://dashboard.properform.app",
@@ -22,39 +23,55 @@ const allowedOrigins = [
   "https://www.properform.app",
 ];
 
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
-    res.header("Access-Control-Allow-Origin", origin);
-  }
-  res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  res.header("Access-Control-Allow-Credentials", "true");
-  if (req.method === "OPTIONS") return res.sendStatus(200);
-  next();
-});
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    optionsSuccessStatus: 200,
+  })
+);
 
-// --- Öffentliche Routen ---
+// Express automatically handles OPTIONS via cors()
+app.use(express.json());
+
+// --------------------
+// 🔓 PUBLIC ROUTES
+// --------------------
 app.use("/users", publicUserRoutes);
-
 app.use("/trainers", publicTrainerRoutes);
 
-// --- Auth Middleware ---
+// --------------------
+// 🔐 PROTECTED ROUTES
+// --------------------
 app.use(requireAuth);
-
-// --- Geschützte Routen ---
 app.use("/users", protectedUserRoutes);
 app.use("/system", protectedSystemRoutes);
 app.use("/trainers", privateTrainerRoutes);
 
-// --- Test ---
+// --------------------
+// 🧪 TEST ROUTE
+// --------------------
 app.get("/", (req, res) => {
-  res.json({ status: "✅ Jo geht", timestamp: new Date().toISOString() });
+  res.json({ status: "✅ API online", timestamp: new Date().toISOString() });
 });
 
-// --- 404 ---
+// --------------------
+// ❌ 404 HANDLER
+// --------------------
 app.use((req, res) => {
   res.status(404).json({ error: "Not found" });
 });
 
-app.listen(PORT, () => console.log(`🚀 API läuft auf Port ${PORT}`));
+// --------------------
+// 🚀 START SERVER
+// --------------------
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 API läuft auf Port ${PORT}`);
+});
