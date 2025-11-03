@@ -11,3 +11,5 @@ function generateTrainerCode() {
 }
 
 console.log(generateTrainerCode());
+
+export { generateTrainerCode };
