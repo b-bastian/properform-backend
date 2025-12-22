@@ -6,6 +6,12 @@ import { requireAuth } from "../../auth.js";
 const router = express.Router();
 const saltRounds = parseInt(process.env.SALT_ROUNDS) || 10;
 
+const ROLES = {
+  OWNER: 1,
+  USER: 2,
+  TRAINER: 3,
+};
+
 router.post("/createUser", requireAuth, async (req, res) => {
   const {
     firstname,
@@ -91,83 +97,113 @@ router.post("/createUser", requireAuth, async (req, res) => {
   }
 });
 
-router.get("/getAll", requireAuth, async (req, res) => {
+// Handler Funktion
+const handleUsersRequest = async (req, res) => {
   try {
-    const [rows] = await db.execute(
-      "SELECT uid, firstname, birthdate, email, role_id FROM users"
-    );
+    const role = req.params.role?.toLowerCase();
 
-    const [trainerRows] = await db.execute(
-      "SELECT tid, firstname, birthdate, email FROM trainers"
-    );
+    const validRoles = ["owners", "users", "trainers"];
+    if (role && !validRoles.includes(role)) {
+      return res.status(400).json({
+        error:
+          "Ungültige Rollenangabe. Erlaubte Werte: 'owners', 'users', 'trainers'",
+      });
+    }
 
-    rows.push(...trainerRows);
-    res.json({ users: rows });
-  } catch (error) {
-    console.error("Fehler beim Abrufen der Benutzer:", error);
-    res.status(500).json({ error: "Fehler beim Abrufen der Benutzer" });
+    let allUsers = [];
+
+    // Owners abrufen (role_id = 1 aus users-Tabelle)
+    if (!role || role === "owners") {
+      const [owners] = await db.execute(
+        "SELECT uid, firstname, birthdate, email, role_id FROM users WHERE role_id = ?",
+        [ROLES.OWNER]
+      );
+      allUsers = allUsers.concat(
+        owners.map((owner) => ({ ...owner, type: "owner" }))
+      );
+    }
+
+    // Users abrufen (role_id = 2 aus users-Tabelle)
+    if (!role || role === "users") {
+      const [users] = await db.execute(
+        "SELECT uid, firstname, birthdate, email, role_id FROM users WHERE role_id = ?",
+        [ROLES.USER]
+      );
+      allUsers = allUsers.concat(
+        users.map((user) => ({ ...user, type: "user" }))
+      );
+    }
+
+    // Trainers abrufen (aus trainers-Tabelle) - WICHTIG: tid NICHT als uid aliassen!
+    if (!role || role === "trainers") {
+      const [trainers] = await db.execute(
+        "SELECT tid, firstname, lastname, birthdate, email, phone_number FROM trainers"
+      );
+      allUsers = allUsers.concat(
+        trainers.map((trainer) => ({
+          tid: trainer.tid,
+          firstname: trainer.firstname,
+          lastname: trainer.lastname,
+          birthdate: trainer.birthdate,
+          email: trainer.email,
+          phone_number: trainer.phone_number,
+          type: "trainer",
+          source: "trainers",
+        }))
+      );
+    }
+
+    res.json({
+      count: allUsers.length,
+      users: allUsers,
+    });
+  } catch (err) {
+    console.error("Fehler beim Abrufen der Benutzer:", err);
+    res.status(500).json({
+      error: "Fehler beim Abrufen der Benutzer",
+    });
   }
-});
+};
 
-router.get("/getAllOwners", requireAuth, async (req, res) => {
-  try {
-    const [rows] = await db.execute(
-      "SELECT uid, firstname, birthdate, email, role_id FROM users WHERE role_id = 1"
-    );
-    res.json({ users: rows });
-  } catch (error) {
-    console.error("Fehler beim Abrufen der Benutzer:", error);
-    res.status(500).json({ error: "Fehler beim Abrufen der Benutzer" });
-  }
-});
+// Routes
+router.get("/users", requireAuth, handleUsersRequest);
+router.get("/users/:role", requireAuth, handleUsersRequest);
 
-router.get("/getAllUsers", requireAuth, async (req, res) => {
+// Separate Route für Statistiken
+router.get("/stats", requireAuth, async (req, res) => {
   try {
-    const [rows] = await db.execute(
-      "SELECT uid, firstname, birthdate, email, role_id FROM users WHERE role_id = 2"
+    const [[userStats]] = await db.execute(
+      `
+      SELECT
+        SUM(role_id = ?) AS owners,
+        SUM(role_id = ?) AS users
+      FROM users
+    `,
+      [ROLES.OWNER, ROLES.USER]
     );
-    res.json({ users: rows });
-  } catch (error) {
-    console.error("Fehler beim Abrufen der Benutzer:", error);
-    res.status(500).json({ error: "Fehler beim Abrufen der Benutzer" });
-  }
-});
 
-router.get("/getAllTrainers", requireAuth, async (req, res) => {
-  try {
-    const [rows] = await db.execute(
-      "SELECT tid, firstname, birthdate, email FROM trainers"
+    const [[trainerStats]] = await db.execute(
+      "SELECT COUNT(*) AS trainers FROM trainers"
     );
-    res.json({ users: rows });
-  } catch (error) {
-    console.error("Fehler beim Abrufen der Benutzer:", error);
-    res.status(500).json({ error: "Fehler beim Abrufen der Benutzer" });
-  }
-});
 
-router.get("/getNumberOfUsers", requireAuth, async (req, res) => {
-  try {
-    const [rows] = await db.execute(
-      "SELECT COUNT(*) AS userCount FROM users WHERE role_id = 2"
-    );
-    const userCount = rows[0].userCount;
-    res.json({ userCount });
-  } catch (error) {
-    console.error("Fehler beim Abrufen der Benutzeranzahl:", error);
-    res.status(500).json({ error: "Interner Serverfehler" });
-  }
-});
+    const total =
+      (parseInt(userStats.owners) || 0) +
+      (parseInt(userStats.users) || 0) +
+      (parseInt(trainerStats.trainers) || 0);
 
-router.get("/getNumberOfTrainers", requireAuth, async (req, res) => {
-  try {
-    const [rows] = await db.execute(
-      "SELECT COUNT(*) AS trainerCount FROM users WHERE role_id = 3"
-    );
-    const trainerCount = rows[0].trainerCount;
-    res.json({ trainerCount });
-  } catch (error) {
-    console.error("Fehler beim Abrufen der Traineranzahl:", error);
-    res.status(500).json({ error: "Interner Serverfehler" });
+    res.json({
+      stats: {
+        owners: parseInt(userStats.owners) || 0,
+        users: parseInt(userStats.users) || 0,
+        trainers: parseInt(trainerStats.trainers) || 0,
+        total: total,
+      },
+    });
+  } catch (err) {
+    console.error("Fehler beim Abrufen der Statistiken:", err);
+    res.status(500).json({
+      error: "Fehler beim Abrufen der Statistiken",
+    });
   }
 });
 
