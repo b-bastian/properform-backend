@@ -6,11 +6,102 @@ import { requireAuth } from "../../auth.js";
 const router = express.Router();
 const saltRounds = parseInt(process.env.SALT_ROUNDS) || 10;
 
+router.post("/createUser", requireAuth, async (req, res) => {
+  const {
+    firstname,
+    birthdate,
+    email,
+    password,
+    weight,
+    height,
+    gender,
+    onboarding_completed,
+    fitness_level,
+    training_frequency,
+    primary_goal,
+  } = req.body;
+
+  if (
+    !firstname ||
+    !birthdate ||
+    !email ||
+    !password ||
+    weight == null ||
+    height == null ||
+    !gender ||
+    onboarding_completed === undefined ||
+    !fitness_level ||
+    !training_frequency ||
+    !primary_goal
+  ) {
+    return res
+      .status(400)
+      .json({ error: "Bitte füllen Sie alle erforderlichen Felder aus." });
+  }
+
+  const passwordRegex =
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  if (!passwordRegex.test(password)) {
+    return res.status(400).json({
+      error:
+        "Das Passwort muss mindestens 8 Zeichen lang sein und mindestens einen Großbuchstaben, einen Kleinbuchstaben, eine Zahl und ein Sonderzeichen enthalten.",
+    });
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({
+      error: "Die E-Mail-Adresse ist ungültig.",
+    });
+  }
+
+  try {
+    const role_id = 2; // Standardmäßig auf "User" setzen
+
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    const [result] = await db.execute(
+      "INSERT INTO users (firstname, birthdate, email, password_hash, weight, height, gender, onboarding_completed, fitness_level, training_frequency, primary_goal, role_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      [
+        firstname,
+        birthdate,
+        email,
+        hashedPassword,
+        weight,
+        height,
+        gender,
+        onboarding_completed,
+        fitness_level,
+        training_frequency,
+        primary_goal,
+        role_id,
+      ]
+    );
+
+    res
+      .status(201)
+      .json({ message: "Benutzer erfolgreich erstellt", uid: result.insertId });
+  } catch (error) {
+    if (error.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({ error: "E-Mail bereits registriert." });
+    }
+
+    console.error("Fehler beim Erstellen des Benutzers:", error);
+    res.status(500).json({ error: "Fehler beim Erstellen des Benutzers" });
+  }
+});
+
 router.get("/getAll", requireAuth, async (req, res) => {
   try {
     const [rows] = await db.execute(
       "SELECT uid, firstname, birthdate, email, role_id FROM users"
     );
+
+    const [trainerRows] = await db.execute(
+      "SELECT tid, firstname, birthdate, email FROM trainers"
+    );
+
+    rows.push(...trainerRows);
     res.json({ users: rows });
   } catch (error) {
     console.error("Fehler beim Abrufen der Benutzer:", error);
@@ -45,7 +136,7 @@ router.get("/getAllUsers", requireAuth, async (req, res) => {
 router.get("/getAllTrainers", requireAuth, async (req, res) => {
   try {
     const [rows] = await db.execute(
-      "SELECT uid, firstname, birthdate, email, role_id FROM users WHERE role_id = 3"
+      "SELECT tid, firstname, birthdate, email FROM trainers"
     );
     res.json({ users: rows });
   } catch (error) {

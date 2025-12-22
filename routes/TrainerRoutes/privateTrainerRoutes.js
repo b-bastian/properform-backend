@@ -3,18 +3,18 @@ import mysql from "mysql2/promise";
 import { db } from "../../db.js";
 import { requireAuth } from "../../auth.js";
 import { generateTrainerCode } from "../../functions/TrainerFunctions.js";
+import bcrypt from "bcryptjs";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+const SALT_ROUNDS = parseInt(process.env.SALT_ROUNDS) || 10;
 
 const router = express.Router();
 
 router.post("/createTrainer", requireAuth, async (req, res) => {
-  const {
-    firstname,
-    lastname,
-    birthdate,
-    email,
-    phone_number,
-    profile_image_url,
-  } = req.body;
+  const { firstname, lastname, password, birthdate, email, phone_number } =
+    req.body;
 
   if (
     !firstname ||
@@ -22,23 +22,25 @@ router.post("/createTrainer", requireAuth, async (req, res) => {
     !email ||
     !phone_number ||
     !birthdate ||
-    !profile_image_url
+    !password
   ) {
     return res.status(400).json({ error: "Pflichtfelder fehlen" });
   }
 
   try {
+    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+
     const trainerCode = generateTrainerCode();
 
     const [result] = await db.execute(
-      "INSERT INTO trainers (firstname, lastname, birthdate, email, phone_number, profile_image_url, invite_code) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO trainers (firstname, lastname, birthdate, email, password_hash, phone_number, invite_code) VALUES (?, ?, ?, ?, ?, ?, ?)",
       [
         firstname,
         lastname,
         birthdate,
         email,
+        hashedPassword,
         phone_number,
-        profile_image_url,
         trainerCode,
       ]
     );
@@ -82,6 +84,24 @@ router.post("/verify-code", requireAuth, async (req, res) => {
   } catch (error) {
     console.error("Fehler bei /verify-code:", error);
     res.status(500).json({ error: "Interner Serverfehler." });
+  }
+});
+
+router.delete("/deleteTrainer/:tid", requireAuth, async (req, res) => {
+  const { tid } = req.params;
+
+  try {
+    const [result] = await db.execute("DELETE FROM trainers WHERE tid = ?", [
+      tid,
+    ]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Trainer nicht gefunden." });
+    }
+
+    res.status(200).json({ message: `Trainer mit ID ${tid} wurde gelöscht.` });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
