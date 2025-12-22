@@ -10,6 +10,12 @@ import { requireAuth } from "./auth.js";
 
 dotenv.config();
 
+console.log("🚀 Starte ProPerform API...");
+console.log(process.env.DB_HOST);
+console.log(process.env.DB_USER);
+console.log(process.env.DB_PASS);
+console.log(process.env.DB_NAME);
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
