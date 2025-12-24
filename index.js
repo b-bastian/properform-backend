@@ -143,7 +143,10 @@ app.get("/", (req, res) => {
 // ❌ 404 HANDLER
 // --------------------
 app.use((req, res) => {
-  res.status(404).json({ error: "Not found" });
+  res.status(404).json({
+    error: "Route not found",
+    message: `No API route matches ${req.method} ${req.originalUrl}`,
+  });
 });
 
 // --------------------
