@@ -12,6 +12,7 @@ const ROLES = {
   TRAINER: 3,
 };
 
+<<<<<<< HEAD
 router.post("/createUser", requireAuth, async (req, res) => {
   const {
     firstname,
@@ -97,6 +98,8 @@ router.post("/createUser", requireAuth, async (req, res) => {
   }
 });
 
+=======
+>>>>>>> 4a46a8c08e000bd2c06d7a62eaf779cb8026c0e4
 // Handler Funktion
 const handleUsersRequest = async (req, res) => {
   try {

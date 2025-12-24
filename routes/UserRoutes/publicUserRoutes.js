@@ -22,6 +22,94 @@ router.get("/dbtest", async (req, res) => {
   }
 });
 
+<<<<<<< HEAD
+=======
+router.post("/createUser", async (req, res) => {
+  const {
+    firstname,
+    birthdate,
+    email,
+    password,
+    weight,
+    height,
+    gender,
+    onboarding_completed,
+    fitness_level,
+    training_frequency,
+    primary_goal,
+  } = req.body;
+
+  if (
+    !firstname ||
+    !birthdate ||
+    !email ||
+    !password ||
+    weight == null ||
+    height == null ||
+    !gender ||
+    onboarding_completed === undefined ||
+    !fitness_level ||
+    !training_frequency ||
+    !primary_goal
+  ) {
+    return res
+      .status(400)
+      .json({ error: "Bitte füllen Sie alle erforderlichen Felder aus." });
+  }
+
+  const passwordRegex =
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  if (!passwordRegex.test(password)) {
+    return res.status(400).json({
+      error:
+        "Das Passwort muss mindestens 8 Zeichen lang sein und mindestens einen Großbuchstaben, einen Kleinbuchstaben, eine Zahl und ein Sonderzeichen enthalten.",
+    });
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({
+      error: "Die E-Mail-Adresse ist ungültig.",
+    });
+  }
+
+  try {
+    const role_id = 2; // Standardmäßig auf "User" setzen
+
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    const [result] = await db.execute(
+      "INSERT INTO users (firstname, birthdate, email, password_hash, weight, height, gender, onboarding_completed, fitness_level, training_frequency, primary_goal, role_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      [
+        firstname,
+        birthdate,
+        email,
+        hashedPassword,
+        weight,
+        height,
+        gender,
+        onboarding_completed,
+        fitness_level,
+        training_frequency,
+        primary_goal,
+        role_id,
+      ]
+    );
+
+    res
+      .status(201)
+      .json({ message: "Benutzer erfolgreich erstellt", uid: result.insertId });
+  } catch (error) {
+    if (error.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({ error: "E-Mail bereits registriert." });
+    }
+
+    console.error("Fehler beim Erstellen des Benutzers:", error);
+    res.status(500).json({ error: "Fehler beim Erstellen des Benutzers" });
+  }
+});
+
+>>>>>>> 4a46a8c08e000bd2c06d7a62eaf779cb8026c0e4
 router.post("/adminRegister", async (req, res) => {
   //const { firstname, birthdate, email, password_hash } = req.body;
 
