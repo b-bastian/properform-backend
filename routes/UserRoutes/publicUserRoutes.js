@@ -22,8 +22,6 @@ router.get("/dbtest", async (req, res) => {
   }
 });
 
-<<<<<<< HEAD
-=======
 router.post("/createUser", async (req, res) => {
   const {
     firstname,
@@ -109,7 +107,6 @@ router.post("/createUser", async (req, res) => {
   }
 });
 
->>>>>>> 4a46a8c08e000bd2c06d7a62eaf779cb8026c0e4
 router.post("/adminRegister", async (req, res) => {
   //const { firstname, birthdate, email, password_hash } = req.body;
 
