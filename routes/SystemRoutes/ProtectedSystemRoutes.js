@@ -2,10 +2,11 @@ import express from "express";
 import mysql from "mysql2/promise";
 import os from "os";
 import fs from "fs";
+import { requireAuth } from "../../auth.js";
 
 const router = express.Router();
 
-router.get("/healthcheck", async (req, res) => {
+router.get("/healthcheck", requireAuth, async (req, res) => {
   const start = Date.now();
 
   // CPU

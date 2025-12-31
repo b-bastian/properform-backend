@@ -1,10 +1,8 @@
 import express from "express";
-import bcrypt from "bcrypt";
 import { db } from "../../db.js";
 import { requireAuth } from "../../auth.js";
 
 const router = express.Router();
-const saltRounds = parseInt(process.env.SALT_ROUNDS) || 10;
 
 const ROLES = {
   OWNER: 1,
@@ -12,13 +10,12 @@ const ROLES = {
   TRAINER: 3,
 };
 
-// Handler Funktion
-const handleUsersRequest = async (req, res) => {
+const getUsers = async (req, res, role) => {
   try {
-    const role = req.params.role?.toLowerCase();
+    const roleParam = role?.toLowerCase();
 
     const validRoles = ["owners", "users", "trainers"];
-    if (role && !validRoles.includes(role)) {
+    if (roleParam && !validRoles.includes(roleParam)) {
       return res.status(400).json({
         error:
           "Ungültige Rollenangabe. Erlaubte Werte: 'owners', 'users', 'trainers'",
@@ -27,8 +24,8 @@ const handleUsersRequest = async (req, res) => {
 
     let allUsers = [];
 
-    // Owners abrufen (role_id = 1 aus users-Tabelle)
-    if (!role || role === "owners") {
+    // Owners abrufen
+    if (!roleParam || roleParam === "owners") {
       const [owners] = await db.execute(
         "SELECT uid, firstname, birthdate, email, role_id FROM users WHERE role_id = ?",
         [ROLES.OWNER]
@@ -38,8 +35,8 @@ const handleUsersRequest = async (req, res) => {
       );
     }
 
-    // Users abrufen (role_id = 2 aus users-Tabelle)
-    if (!role || role === "users") {
+    // Users abrufen
+    if (!roleParam || roleParam === "users") {
       const [users] = await db.execute(
         "SELECT uid, firstname, birthdate, email, role_id FROM users WHERE role_id = ?",
         [ROLES.USER]
@@ -49,8 +46,8 @@ const handleUsersRequest = async (req, res) => {
       );
     }
 
-    // Trainers abrufen (aus trainers-Tabelle) - WICHTIG: tid NICHT als uid aliassen!
-    if (!role || role === "trainers") {
+    // Trainers abrufen
+    if (!roleParam || roleParam === "trainers") {
       const [trainers] = await db.execute(
         "SELECT tid, firstname, lastname, birthdate, email, phone_number FROM trainers"
       );
@@ -80,9 +77,13 @@ const handleUsersRequest = async (req, res) => {
   }
 };
 
-// Routes
-router.get("/users", requireAuth, handleUsersRequest);
-router.get("/users/:role", requireAuth, handleUsersRequest);
+router.get("/", requireAuth, async (req, res) => {
+  await getUsers(req, res, null);
+});
+
+router.get("/:role", requireAuth, async (req, res) => {
+  await getUsers(req, res, req.params.role);
+});
 
 // Separate Route für Statistiken
 router.get("/stats", requireAuth, async (req, res) => {
