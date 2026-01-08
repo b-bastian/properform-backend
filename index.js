@@ -168,9 +168,20 @@ app.get("/", (req, res) => {
 // ❌ 404 HANDLER
 // --------------------
 app.use((req, res) => {
+  const methods = routeMap.get(req.path);
+
+  if (methods) {
+    return res.status(405).json({
+      error: "Method not allowed",
+      message: `Diese Route existiert, aber nicht mit ${req.method}`,
+      allowedMethods: Array.from(methods),
+      hint: `Vielleicht meintest du ${Array.from(methods).join(" oder ")}`,
+    });
+  }
+
   res.status(404).json({
     error: "Route not found",
-    message: `No API route matches ${req.method} ${req.originalUrl}`,
+    message: `No API Route matches ${req.method} ${req.originalUrl}`,
   });
 });
 
@@ -246,6 +257,16 @@ app.listen(PORT, "0.0.0.0", () => {
   // Gruppieren nach Public/Protected
   const publicRoutes = uniqueRoutes.filter((r) => !r.protected);
   const protectedRoutes = uniqueRoutes.filter((r) => r.protected);
+
+  const routeMap = new Map();
+
+  uniqueRoutes.forEach(({ method, path }) => {
+    if (!routeMap.has(path)) {
+      routeMap.set(path, new Set());
+    }
+
+    routeMap.get(path).add(method);
+  });
 
   // PUBLIC ROUTES
   if (publicRoutes.length > 0) {
