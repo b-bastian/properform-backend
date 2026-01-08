@@ -5,6 +5,8 @@ import jwt from "jsonwebtoken";
 
 const router = express.Router();
 
+const saltRounds = process.env.SALT_ROUNDS;
+
 router.post("/admin/register", async (req, res) => {
   //const { firstname, birthdate, email, password_hash } = req.body;
 
