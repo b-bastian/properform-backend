@@ -6,6 +6,7 @@ import protectedUserRoutes from "./routes/UserRoutes/protectedUserRoutes.js";
 import protectedSystemRoutes from "./routes/SystemRoutes/ProtectedSystemRoutes.js";
 import publicTrainerRoutes from "./routes/TrainerRoutes/publicTrainerRoutes.js";
 import privateTrainerRoutes from "./routes/TrainerRoutes/privateTrainerRoutes.js";
+import publicAuthRoutes from "./routes/AuthRoutes/publicAuthRoutes.js";
 import { requireAuth } from "./auth.js";
 
 dotenv.config();
@@ -144,6 +145,7 @@ app.use(express.json());
 // --------------------
 app.use("/users", publicUserRoutes);
 app.use("/trainers", publicTrainerRoutes);
+app.use("/auth", publicAuthRoutes);
 
 // --------------------
 // 🔐 PROTECTED ROUTES
@@ -219,6 +221,7 @@ app.listen(PORT, "0.0.0.0", () => {
 
   allRoutes.push(...extractRoutes(publicUserRoutes, "/users", false));
   allRoutes.push(...extractRoutes(publicTrainerRoutes, "/trainers", false));
+  allRoutes.push(...extractRoutes(publicAuthRoutes, "/auth", false));
   allRoutes.push(...extractRoutes(protectedUserRoutes, "/users", true));
   allRoutes.push(...extractRoutes(protectedSystemRoutes, "/system", true));
   allRoutes.push(...extractRoutes(privateTrainerRoutes, "/trainers", true));

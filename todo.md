@@ -109,3 +109,7 @@
 - [ ] Input-Validation mit express-validator
 - [ ] Strukturiertes Logging
 ```
+
+
+
+eine route bitte die einem user seine eigenen daten zurückgibt 
