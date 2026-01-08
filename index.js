@@ -11,6 +11,8 @@ import { requireAuth } from "./auth.js";
 
 dotenv.config();
 
+const routeMap = new Map();
+
 /* =========================
    🎨 COLORS (ANSI)
 ========================= */
@@ -257,8 +259,6 @@ app.listen(PORT, "0.0.0.0", () => {
   // Gruppieren nach Public/Protected
   const publicRoutes = uniqueRoutes.filter((r) => !r.protected);
   const protectedRoutes = uniqueRoutes.filter((r) => r.protected);
-
-  const routeMap = new Map();
 
   uniqueRoutes.forEach(({ method, path }) => {
     if (!routeMap.has(path)) {
